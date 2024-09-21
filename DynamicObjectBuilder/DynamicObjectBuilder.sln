@@ -5,11 +5,16 @@ VisualStudioVersion = 17.11.35303.130
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{84DF1940-F01A-4439-BB14-A5D442FDFC70}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicObjectBuilder.Api", "src\DynamicObjectBuilder.Api\DynamicObjectBuilder.Api.csproj", "{EBE56419-02A0-423E-8795-D300CF0966C4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicObjectBuilder.Api", "src\DynamicObjectBuilder.Api\DynamicObjectBuilder.Api.csproj", "{EBE56419-02A0-423E-8795-D300CF0966C4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicObjectBuilder.Business", "src\DynamicObjectBuilder.Business\DynamicObjectBuilder.Business.csproj", "{F3EE35FD-FEA3-4F99-8210-792B0C705CF4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicObjectBuilder.Business", "src\DynamicObjectBuilder.Business\DynamicObjectBuilder.Business.csproj", "{F3EE35FD-FEA3-4F99-8210-792B0C705CF4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicObjectBuilder.DataAccess", "src\DynamicObjectBuilder.DataAccess\DynamicObjectBuilder.DataAccess.csproj", "{35A4490B-FB0A-4995-AB87-1008AFBA4A91}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicObjectBuilder.DataAccess", "src\DynamicObjectBuilder.DataAccess\DynamicObjectBuilder.DataAccess.csproj", "{35A4490B-FB0A-4995-AB87-1008AFBA4A91}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A4875697-C994-46E3-9B26-3728614D494E}"
+	ProjectSection(SolutionItems) = preProject
+		docker-compose.yml = docker-compose.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

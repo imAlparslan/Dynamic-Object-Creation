@@ -1,0 +1,18 @@
+version: '3.9'
+
+
+services:
+  db:
+    container_name: SchemaBuilderDb
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - 14333:1433
+    environment:
+       ACCEPT_EULA: Y
+       MSSQL_SA_PASSWORD: this_PassW0Rd_Shou!ld_bE_secret
+       MSSQL_PID: Developer
+    volumes:
+      - sql-data:/var/opt/mssql/ 
+
+volumes:
+  sql-data:

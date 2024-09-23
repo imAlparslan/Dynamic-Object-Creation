@@ -1,7 +1,5 @@
-using DynamicObjectBuilder.DataAccess;
 using DynamicObjectBuilder.Business;
-using DynamicObjectBuilder.Api.Types;
-using HotChocolate.Execution.Configuration;
+using DynamicObjectBuilder.DataAccess;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,22 +14,10 @@ builder.Services
 builder.Services
     .AddGraphQLServer()
     .AddApiTypes()
-    
-    
-    //.AddQueryType<Query>()
-
-    //.AddMutationType(typeof(SchemaMutations))
-    
+    .AddMutationConventions()
     .InitializeOnStartup();
-    
-    //.AddMutationConventions()
-    //.AddMutationType(typeof(SchemaMutations));
 
 var app = builder.Build();
-
-//app.UseHttpsRedirection();
-
-// app.UseAuthorization();
 
 app.MapGraphQL();
 

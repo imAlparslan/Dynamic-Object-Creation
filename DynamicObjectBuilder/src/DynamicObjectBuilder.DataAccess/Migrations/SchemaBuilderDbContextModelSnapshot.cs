@@ -46,7 +46,7 @@ namespace DynamicObjectBuilder.DataAccess.Migrations
 
             modelBuilder.Entity("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.DynamicSchema", b =>
                 {
-                    b.OwnsMany("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.SchemaFields", "Fields", b1 =>
+                    b.OwnsMany("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.SchemaField", "Fields", b1 =>
                         {
                             b1.Property<Guid>("DynamicSchemaId")
                                 .HasColumnType("uniqueidentifier");

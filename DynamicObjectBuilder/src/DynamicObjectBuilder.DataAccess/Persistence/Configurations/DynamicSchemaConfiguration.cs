@@ -21,10 +21,13 @@ internal class DynamicSchemaConfiguration : IEntityTypeConfiguration<DynamicSche
         builder.HasIndex(x => x.Name)
             .IsUnique();
 
+
         builder.OwnsMany(x => x.Fields, navigatingProp =>
         {
             navigatingProp.ToJson();
         });
+
+        
 
     }
 }

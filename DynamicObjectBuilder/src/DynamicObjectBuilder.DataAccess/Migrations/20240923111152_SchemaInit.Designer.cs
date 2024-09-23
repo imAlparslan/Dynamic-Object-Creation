@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DynamicObjectBuilder.DataAccess.Migrations
 {
     [DbContext(typeof(SchemaBuilderDbContext))]
-    [Migration("20240921134622_DynamicSchemaInit")]
-    partial class DynamicSchemaInit
+    [Migration("20240923111152_SchemaInit")]
+    partial class SchemaInit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -49,7 +49,7 @@ namespace DynamicObjectBuilder.DataAccess.Migrations
 
             modelBuilder.Entity("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.DynamicSchema", b =>
                 {
-                    b.OwnsMany("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.SchemaFields", "Fields", b1 =>
+                    b.OwnsMany("DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels.SchemaField", "Fields", b1 =>
                         {
                             b1.Property<Guid>("DynamicSchemaId")
                                 .HasColumnType("uniqueidentifier");

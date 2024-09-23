@@ -1,4 +1,5 @@
 ﻿using System;
+using DynamicObjectBuilder.DataAccess.DatabaseSeeds;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DynamicObjectBuilder.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class DynamicSchemaInit : Migration
+    public partial class SchemaInit : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,6 +31,8 @@ namespace DynamicObjectBuilder.DataAccess.Migrations
                 table: "DynamicSchema",
                 column: "DynamicSchemaName",
                 unique: true);
+
+            migrationBuilder.AddCoreSchemas();
         }
 
         /// <inheritdoc />

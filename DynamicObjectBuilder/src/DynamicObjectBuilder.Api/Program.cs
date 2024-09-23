@@ -1,21 +1,38 @@
 using DynamicObjectBuilder.DataAccess;
-using Microsoft.EntityFrameworkCore;
+using DynamicObjectBuilder.Business;
+using DynamicObjectBuilder.Api.Types;
+using HotChocolate.Execution.Configuration;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddDbContext<SchemaBuilderDbContext>(opt =>
-{
-    opt.UseSqlServer(connectionString: builder.Configuration.GetConnectionString("MSSQL"));
-});
 
+builder.Services
+    .AddBusinessLayer()
+    .AddDataAccessLayer(builder.Configuration);
+
+builder.Services
+    .AddGraphQLServer()
+    .AddApiTypes()
+    
+    
+    //.AddQueryType<Query>()
+
+    //.AddMutationType(typeof(SchemaMutations))
+    
+    .InitializeOnStartup();
+    
+    //.AddMutationConventions()
+    //.AddMutationType(typeof(SchemaMutations));
 
 var app = builder.Build();
 
+//app.UseHttpsRedirection();
 
-app.UseHttpsRedirection();
+// app.UseAuthorization();
 
-app.UseAuthorization();
+app.MapGraphQL();
 
 app.Run();

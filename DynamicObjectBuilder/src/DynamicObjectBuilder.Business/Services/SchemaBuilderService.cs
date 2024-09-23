@@ -14,7 +14,6 @@ namespace DynamicObjectBuilder.Business.Services
         {
             _dbContext = dbContext;
         }
-
         public async Task<DynamicSchema> CreateSchemaAsync(CreateSchemaRequest request, CancellationToken cancellationToken)
         {
 
@@ -25,7 +24,7 @@ namespace DynamicObjectBuilder.Business.Services
 
 
             await IsNewSchemaNameExists(request.SchemaName, cancellationToken);
-            
+
             await CheckDuplicateFieldNameSended(newSchemaFields);
 
             await CheckAllFieldsAreKnown(newSchemaFields, cancellationToken);
@@ -40,14 +39,12 @@ namespace DynamicObjectBuilder.Business.Services
 
             return newSchema;
         }
-
         public async Task<IEnumerable<DynamicSchema>> GetAllAsync(CancellationToken cancellationToken)
         {
             return await _dbContext.DynamicSchemas.AsQueryable()
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
         }
-
         private async Task IsNewSchemaNameExists(string schemaName, CancellationToken cancellationToken)
         {
             var isExists = await _dbContext.DynamicSchemas.AnyAsync(x => x.Name == schemaName, cancellationToken);
@@ -90,6 +87,16 @@ namespace DynamicObjectBuilder.Business.Services
 
                 throw new SchemaException($"Unknow field schema {string.Join(", ", unKnownSchemaNames)}");
             }
+        }
+        public async Task<DynamicSchema> GetByIdAsync(Guid Id, CancellationToken cancellationToken)
+        {
+            var schema = await _dbContext.DynamicSchemas.FirstOrDefaultAsync(x => x.Id == Id, cancellationToken);
+            if (schema is null)
+            {
+                throw new SchemaException("Schema was not found");
+            }
+
+            return schema;
         }
     }
 }

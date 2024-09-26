@@ -7,11 +7,24 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DynamicObjectBuilder.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class SchemaInit : Migration
+    public partial class Database : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "DynamicEntity",
+                columns: table => new
+                {
+                    DynamicEntityId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SchemaId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Fields = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DynamicEntity", x => x.DynamicEntityId);
+                });
+
             migrationBuilder.CreateTable(
                 name: "DynamicSchema",
                 columns: table => new
@@ -38,6 +51,9 @@ namespace DynamicObjectBuilder.DataAccess.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "DynamicEntity");
+
             migrationBuilder.DropTable(
                 name: "DynamicSchema");
         }

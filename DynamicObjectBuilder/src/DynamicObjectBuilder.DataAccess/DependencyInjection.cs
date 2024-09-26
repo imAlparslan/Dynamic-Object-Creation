@@ -12,6 +12,7 @@ namespace DynamicObjectBuilder.DataAccess
             services.AddDbContext<SchemaBuilderDbContext>(opt =>
             {
                 opt.UseSqlServer(connectionString: configuration.GetConnectionString("MSSQL"));
+                
             });
 
             return services;

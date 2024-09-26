@@ -21,15 +21,11 @@ namespace DynamicObjectBuilder.Business.Services
                         .Select(x => new SchemaField(x.Name, x.IsRequired, x.SchemaTypeId))
                         .ToList();
 
-
-
             await IsNewSchemaNameExists(request.SchemaName, cancellationToken);
 
             await CheckDuplicateFieldNameSended(newSchemaFields);
 
             await CheckAllFieldsAreKnown(newSchemaFields, cancellationToken);
-
-
 
             DynamicSchema newSchema = new DynamicSchema(request.SchemaName, newSchemaFields);
 
@@ -71,7 +67,7 @@ namespace DynamicObjectBuilder.Business.Services
         }
         private async Task CheckAllFieldsAreKnown(List<SchemaField> newSchemaFields, CancellationToken cancellationToken)
         {
-            var newFieldTypes = newSchemaFields.Select(x => x.SchemaType)
+            var newFieldTypes = newSchemaFields.Select(x => x.SchemaTypeId)
                     .ToList();
 
             var schemas = await _dbContext.DynamicSchemas
@@ -82,7 +78,7 @@ namespace DynamicObjectBuilder.Business.Services
 
             if (!notKnownSchemas.IsNullOrEmpty())
             {
-                var unKnownSchemaNames = newSchemaFields.Where(x => notKnownSchemas.Contains(x.SchemaType))
+                var unKnownSchemaNames = newSchemaFields.Where(x => notKnownSchemas.Contains(x.SchemaTypeId))
                     .Select(x => x.Name);
 
                 throw new SchemaException($"Unknow field schema {string.Join(", ", unKnownSchemaNames)}");
@@ -97,6 +93,83 @@ namespace DynamicObjectBuilder.Business.Services
             }
 
             return schema;
+        }
+
+        public async Task<bool> DeleteByIdAsync(Guid Id, CancellationToken cancellationToken)
+        {
+            var schema = await _dbContext.DynamicSchemas
+                .FirstOrDefaultAsync(x => x.Id == Id, cancellationToken);
+
+            if (schema is null)
+            {
+                throw new SchemaException("Unknown schema");
+            }
+
+            if (schema.IsCoreSchema)
+            {
+                throw new SchemaException("Core schema cannot be deleted");
+            }
+
+            var usedIn = await _dbContext.DynamicSchemas.SelectMany(x => x.Fields, (schema, field) => new { schema, field })
+                .Where(f => f.field.SchemaTypeId == Id)
+                .Select(s => s.schema)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            if (!usedIn.IsNullOrEmpty())
+            {
+                throw new SchemaException($"This schema cannot deleted because it used in {string.Join(", ", usedIn.Select(x => x.Name))}");
+            }
+
+            var entities = await _dbContext.DynamicEntity
+                .Where(x => x.SchemaId == Id)
+                .ToListAsync(cancellationToken);
+
+            _dbContext.DynamicSchemas.Remove(schema);
+
+            if (entities.Any())
+            {
+                _dbContext.DynamicEntity.RemoveRange(entities);
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        public async Task<DynamicSchema> UpdateSchemaAsync(UpdateSchemaRequest request, CancellationToken cancellationToken)
+        {
+            var schema = await _dbContext.DynamicSchemas.FirstOrDefaultAsync(x => x.Id == request.SchemaId, cancellationToken);
+
+            if (schema is null)
+            {
+                throw new DynamicEntityExeception("Unkown schema");
+            }
+
+            List<SchemaField> schemaFields = request.Fields
+                .Select(x => new SchemaField(x.Name, x.IsRequired, x.SchemaTypeId))
+                .ToList();
+
+            if (request.SchemaName != schema.Name)
+            {
+                await IsNewSchemaNameExists(request.SchemaName, cancellationToken);
+
+            }
+
+            await CheckDuplicateFieldNameSended(schemaFields);
+
+            await CheckAllFieldsAreKnown(schemaFields, cancellationToken);
+
+            DynamicSchema newSchema = new DynamicSchema(request.SchemaName, schemaFields, id: schema.Id);
+
+            _dbContext.DynamicSchemas.Remove(schema);
+
+            await _dbContext.DynamicSchemas.AddAsync(newSchema, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+
+            return newSchema;
+
         }
     }
 }

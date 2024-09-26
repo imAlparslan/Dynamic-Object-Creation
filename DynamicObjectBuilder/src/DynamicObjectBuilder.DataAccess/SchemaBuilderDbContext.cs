@@ -1,4 +1,5 @@
-﻿using DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
+﻿using DynamicObjectBuilder.DataAccess.Models.DynamicEntityModels;
+using DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -6,8 +7,7 @@ namespace DynamicObjectBuilder.DataAccess;
 public class SchemaBuilderDbContext : DbContext
 {
     public DbSet<DynamicSchema> DynamicSchemas { get; set; }
-
-
+    public DbSet<DynamicEntity> DynamicEntity { get; set; }
     public SchemaBuilderDbContext()
     {
 
@@ -22,6 +22,4 @@ public class SchemaBuilderDbContext : DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
-
-
 }

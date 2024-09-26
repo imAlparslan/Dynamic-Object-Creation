@@ -1,6 +1,6 @@
 ﻿namespace DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
 
-public class DynamicSchema
+public sealed class DynamicSchema
 {
     public Guid Id { get; set; }
     public string Name { get; set; }

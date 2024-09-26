@@ -1,15 +1,29 @@
 version: '3.9'
 
 services:
-  db:
-    container_name: SchemaBuilderDb
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    ports:
-      - "14333:1433"
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "this_PassW0Rd_Shou!ld_bE_secret"
-      MSSQL_PID: "Developer"
+    db:
+        container_name: SchemaBuilderDb
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        ports:
+            - "14333:1433"
+        environment:
+            ACCEPT_EULA: "Y"
+            MSSQL_SA_PASSWORD: "this_PassW0Rd_Shou!ld_bE_secret"
+            MSSQL_PID: "Developer"
 
-
+    dynamic-api:
+        container_name: SchemaBuilderWebService
+        build:
+            context: .
+        ports:
+            - "8080:8080"
+        environment:
+            ConnectionStrings__MSSQL: "Data Source=db,1433;Initial Catalog=SchemaBuilder;Persist Security Info=True;User ID=sa;Password=this_PassW0Rd_Shou!ld_bE_secret;Trust Server Certificate=True;"
+        depends_on:
+            - db
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+            interval: 30s
+            timeout: 10s
+            retries: 5
 

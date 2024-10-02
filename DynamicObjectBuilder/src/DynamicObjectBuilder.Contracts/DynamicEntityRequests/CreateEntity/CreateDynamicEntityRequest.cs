@@ -1,4 +1,4 @@
-﻿namespace DynamicObjectBuilder.Contracts.DynamicEntityRequests;
+﻿namespace DynamicObjectBuilder.Contracts.DynamicEntityRequests.CreateEntity;
 public class CreateDynamicEntityRequest
 {
     public Guid SchemaId { get; private set; }

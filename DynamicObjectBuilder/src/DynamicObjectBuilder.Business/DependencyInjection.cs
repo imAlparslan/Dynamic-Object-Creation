@@ -8,7 +8,7 @@ public static class DependencyInjection
     public static IServiceCollection AddBusinessLayer(this IServiceCollection services)
     {
         services.AddScoped<ISchemaBuilderService, SchemaBuilderService>();
-        services.AddScoped<IDynamicEntityService, DynamicEntityService>();
+        services.AddScoped<IEntityService, EntityService>();
 
 
         services.AddAutoMapper(Assembly.GetExecutingAssembly());

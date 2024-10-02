@@ -1,24 +1,37 @@
-﻿namespace DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
+﻿using DynamicObjectBuilder.DataAccess.Models.Enums;
+
+namespace DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
 
 public sealed class SchemaField
 {
-    public string Name { get; set; }
-    public bool IsRequired { get; set; }
-    public Guid SchemaTypeId { get; set; }
-    public Guid FieldIdentifier { get; set; }
+    public Guid Id { get; private set; }
+    public Guid FieldIdentifer { get; private set; }
+    public DynamicSchema Owner { get; private set; }
+    public string Name { get; private set; }
+    public bool IsRequired { get; private set; }
+    public FieldType FieldType { get; private set; }
+    public DynamicSchema? DynamicSchema { get; private set; }
 
-    public SchemaField(string name, bool isRequired, Guid schemaTypeId, Guid? fieldIdentifier = null)
+    public SchemaField(
+        string name,
+        bool isRequired,
+        DynamicSchema owner,
+        FieldType fieldType,
+        Guid? id = null,
+        Guid? fieldIdentifer = null,
+        DynamicSchema? dynamicSchema = null)
     {
         Name = name;
         IsRequired = isRequired;
-        SchemaTypeId = schemaTypeId;
-        FieldIdentifier = fieldIdentifier ?? Guid.NewGuid();
+        Owner = owner;
+        FieldType = fieldType;
+        DynamicSchema = dynamicSchema;
+        FieldIdentifer = fieldIdentifer ?? Guid.NewGuid();
+        Id = id ?? Guid.NewGuid();
     }
 
-
-    private SchemaField() 
+    private SchemaField()
     {
-        
     }
 
 }

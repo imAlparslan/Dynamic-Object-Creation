@@ -1,7 +1,11 @@
-﻿using DynamicObjectBuilder.Business.Exceptions;
-using DynamicObjectBuilder.Contracts.SchemaBuilderRequests;
+﻿using AutoMapper;
+using DynamicObjectBuilder.Business.Common;
+using DynamicObjectBuilder.Business.Exceptions;
+using DynamicObjectBuilder.Contracts.Common;
+using DynamicObjectBuilder.Contracts.SchemaBuilderRequests.CreateSchema;
 using DynamicObjectBuilder.DataAccess;
 using DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
+using DynamicObjectBuilder.DataAccess.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -10,94 +14,100 @@ namespace DynamicObjectBuilder.Business.Services
     public sealed class SchemaBuilderService : ISchemaBuilderService
     {
         private readonly SchemaBuilderDbContext _dbContext;
-        public SchemaBuilderService(SchemaBuilderDbContext dbContext)
+        private readonly IMapper _mapper;
+        public SchemaBuilderService(SchemaBuilderDbContext dbContext, IMapper mapper)
         {
             _dbContext = dbContext;
+            _mapper = mapper;
         }
-        public async Task<DynamicSchema> CreateSchemaAsync(CreateSchemaRequest request, CancellationToken cancellationToken)
-        {
 
-            List<SchemaField> newSchemaFields = request.Fields
-                        .Select(x => new SchemaField(x.Name, x.IsRequired, x.SchemaTypeId))
+
+        public async Task<DynamicSchemaResponse> CreateSchemaAsync(CreateSchemaRequest request, CancellationToken cancellationToken)
+        {
+            string formattedTableName = await ValidateAndFormatTableName(request, cancellationToken);
+
+            var duplicateFieldNames = GetDuplicateFieldNames(request);
+
+            if (!duplicateFieldNames.IsNullOrEmpty())
+            {
+                throw new SchemaException($"Duplicate Field names on {string.Join(", ", duplicateFieldNames)}");
+            }
+
+            List<SchemaField> fields = new();
+
+            DynamicSchema schema = new DynamicSchema(formattedTableName, fields, Guid.NewGuid());
+
+            fields.AddRange(request.Fields
+                                .Select(x => SchemaFieldRequestToSchemaField(x, schema))
+                                .ToList());
+
+            var transaction = _dbContext.Database.BeginTransaction();
+            try
+            {
+                await _dbContext.DynamicSchemas.AddAsync(schema, cancellationToken);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                await CreateTable(schema, cancellationToken);
+
+
+                transaction.Commit();
+
+                return _mapper.Map<DynamicSchemaResponse>(schema);
+            }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+        private static List<string> GetDuplicateFieldNames(CreateSchemaRequest request)
+        {
+            return request.Fields.GroupBy(x => x.Name, (key, list) => new { key, list })
+                        .Where(x => x.list.Count() > 1)
+                        .Select(x => x.key)
                         .ToList();
-
-            await IsNewSchemaNameExists(request.SchemaName, cancellationToken);
-
-            await CheckDuplicateFieldNameSended(newSchemaFields);
-
-            await CheckAllFieldsAreKnown(newSchemaFields, cancellationToken);
-
-            DynamicSchema newSchema = new DynamicSchema(request.SchemaName, newSchemaFields);
-
-            await _dbContext.DynamicSchemas.AddAsync(newSchema, cancellationToken);
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return newSchema;
         }
-        public async Task<IEnumerable<DynamicSchema>> GetAllAsync(CancellationToken cancellationToken)
-        {
-            return await _dbContext.DynamicSchemas.AsQueryable()
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-        }
-        private async Task IsNewSchemaNameExists(string schemaName, CancellationToken cancellationToken)
-        {
-            var isExists = await _dbContext.DynamicSchemas.AnyAsync(x => x.Name == schemaName, cancellationToken);
 
-            if (isExists)
+        private async Task<string> ValidateAndFormatTableName(CreateSchemaRequest request, CancellationToken cancellationToken)
+        {
+            var formattedTableName = SqlHelper.SchemaNameToSqlTableName(request.SchemaName);
+
+            var isSchemaExists = await _dbContext.DynamicSchemas.AnyAsync(x => x.Name == formattedTableName, cancellationToken);
+
+            if (isSchemaExists)
             {
-                throw new SchemaException($"Given schema name already exists {schemaName}");
+                throw new SchemaException("Schema name should be unique");
             }
 
+            return formattedTableName;
         }
-        private Task CheckDuplicateFieldNameSended(List<SchemaField> fields)
-        {
-            var duplicates = fields.GroupBy(x => x.Name)
-                .Where(x => x.Count() > 1)
-                .Select(x => x.Key)
-                .ToList();
 
-            if (duplicates.Any())
+        private async Task CreateTable(DynamicSchema schema, CancellationToken cancellationToken)
+        {
+            var sql = SqlHelper.DynamicSchemaToRawSql(schema);
+            await _dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+
+        private SchemaField SchemaFieldRequestToSchemaField(CreateSchemaFieldRequest request, DynamicSchema owner)
+        {
+            if (request.DynamicSchemaId.HasValue)
             {
-                throw new SchemaException($"There are duplicate field name {string.Join(", ", duplicates)}");
+                var subSchema = _dbContext.DynamicSchemas.FirstOrDefault(x => x.Id == request.DynamicSchemaId);
+
+                if (subSchema is null)
+                {
+                    throw new SchemaException($"{request.Name} has unknown type");
+                }
+                return new SchemaField(request.Name, request.IsRequired, owner, (FieldType)request.FieldType, dynamicSchema: subSchema);
             }
-
-            return Task.CompletedTask;
-        }
-        private async Task CheckAllFieldsAreKnown(List<SchemaField> newSchemaFields, CancellationToken cancellationToken)
-        {
-            var newFieldTypes = newSchemaFields.Select(x => x.SchemaTypeId)
-                    .ToList();
-
-            var schemas = await _dbContext.DynamicSchemas
-                    .Select(x => x.Id)
-                    .ToListAsync(cancellationToken);
-
-            var notKnownSchemas = newFieldTypes.Except(schemas).ToList();
-
-            if (!notKnownSchemas.IsNullOrEmpty())
-            {
-                var unKnownSchemaNames = newSchemaFields.Where(x => notKnownSchemas.Contains(x.SchemaTypeId))
-                    .Select(x => x.Name);
-
-                throw new SchemaException($"Unknow field schema {string.Join(", ", unKnownSchemaNames)}");
-            }
-        }
-        public async Task<DynamicSchema> GetByIdAsync(Guid Id, CancellationToken cancellationToken)
-        {
-            var schema = await _dbContext.DynamicSchemas.FirstOrDefaultAsync(x => x.Id == Id, cancellationToken);
-            if (schema is null)
-            {
-                throw new SchemaException("Schema was not found");
-            }
-
-            return schema;
+            return new SchemaField(request.Name, request.IsRequired, owner, (FieldType)request.FieldType);
         }
 
-        public async Task<bool> DeleteByIdAsync(Guid Id, CancellationToken cancellationToken)
+        public async Task<DynamicSchemaResponse> GetByIdAsync(Guid Id, CancellationToken cancellationToken)
         {
-            var schema = await _dbContext.DynamicSchemas
+            var schema = await _dbContext.DynamicSchemas.AsNoTracking()
+                .Include(x => x.Fields)
                 .FirstOrDefaultAsync(x => x.Id == Id, cancellationToken);
 
             if (schema is null)
@@ -105,71 +115,48 @@ namespace DynamicObjectBuilder.Business.Services
                 throw new SchemaException("Unknown schema");
             }
 
-            if (schema.IsCoreSchema)
-            {
-                throw new SchemaException("Core schema cannot be deleted");
-            }
-
-            var usedIn = await _dbContext.DynamicSchemas.SelectMany(x => x.Fields, (schema, field) => new { schema, field })
-                .Where(f => f.field.SchemaTypeId == Id)
-                .Select(s => s.schema)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            if (!usedIn.IsNullOrEmpty())
-            {
-                throw new SchemaException($"This schema cannot deleted because it used in {string.Join(", ", usedIn.Select(x => x.Name))}");
-            }
-
-            var entities = await _dbContext.DynamicEntity
-                .Where(x => x.SchemaId == Id)
-                .ToListAsync(cancellationToken);
-
-            _dbContext.DynamicSchemas.Remove(schema);
-
-            if (entities.Any())
-            {
-                _dbContext.DynamicEntity.RemoveRange(entities);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return true;
+            return _mapper.Map<DynamicSchemaResponse>(schema);
         }
 
-        public async Task<DynamicSchema> UpdateSchemaAsync(UpdateSchemaRequest request, CancellationToken cancellationToken)
+        public async Task<bool> DeleteByIdAsync(Guid Id, CancellationToken cancellationToken)
         {
-            var schema = await _dbContext.DynamicSchemas.FirstOrDefaultAsync(x => x.Id == request.SchemaId, cancellationToken);
+            var schema = await _dbContext.DynamicSchemas
+               .Include(x => x.Fields)
+               .FirstOrDefaultAsync(x => x.Id == Id, cancellationToken);
 
             if (schema is null)
             {
-                throw new DynamicEntityExeception("Unkown schema");
+                throw new SchemaException("Unknown schema");
             }
+            var tableName = SqlHelper.SchemaNameToSqlTableName(schema.Name);
 
-            List<SchemaField> schemaFields = request.Fields
-                .Select(x => new SchemaField(x.Name, x.IsRequired, x.SchemaTypeId))
-                .ToList();
+            var transaction = _dbContext.Database.BeginTransaction();
 
-            if (request.SchemaName != schema.Name)
+            try
             {
-                await IsNewSchemaNameExists(request.SchemaName, cancellationToken);
+                await _dbContext.Database.ExecuteSqlRawAsync($"DROP TABLE [{tableName}]", cancellationToken);
+                _dbContext.DynamicSchemas.Remove(schema);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                transaction.Commit();
 
             }
+            catch (Exception)
+            {
+                transaction.Rollback();
+                throw;
+            }
+            return true;
+        }
 
-            await CheckDuplicateFieldNameSended(schemaFields);
+        public async Task<List<DynamicSchemaResponse>> GetAllAsync(CancellationToken cancellationToken)
+        {
+            var schemas = await _dbContext.DynamicSchemas
+                .AsNoTracking()
+                .Include(x => x.Fields)
+                .ToListAsync(cancellationToken);
 
-            await CheckAllFieldsAreKnown(schemaFields, cancellationToken);
-
-            DynamicSchema newSchema = new DynamicSchema(request.SchemaName, schemaFields, id: schema.Id);
-
-            _dbContext.DynamicSchemas.Remove(schema);
-
-            await _dbContext.DynamicSchemas.AddAsync(newSchema, cancellationToken);
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-
-            return newSchema;
-
+            return _mapper.Map<List<DynamicSchemaResponse>>(schemas);
         }
     }
 }

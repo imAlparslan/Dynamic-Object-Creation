@@ -1,7 +1,9 @@
 ﻿using DynamicObjectBuilder.Business.Exceptions;
 using DynamicObjectBuilder.Business.Services;
-using DynamicObjectBuilder.Contracts.SchemaBuilderRequests;
-using DynamicObjectBuilder.DataAccess.Models.DynamicSchemaModels;
+using DynamicObjectBuilder.Contracts.Common;
+using DynamicObjectBuilder.Contracts.DynamicEntityRequests.CreateEntity;
+using DynamicObjectBuilder.Contracts.SchemaBuilderRequests.CreateSchema;
+using DynamicObjectBuilder.Contracts.SchemaBuilderRequests.DeleteSchema;
 
 namespace DynamicObjectBuilder.Api.Types;
 
@@ -9,23 +11,28 @@ namespace DynamicObjectBuilder.Api.Types;
 public static class DynamicSchemaMutations
 {
     [Error<SchemaError>]
-    public static async Task<DynamicSchema> CreateSchemaAsync([Service] ISchemaBuilderService schemaBuilderService,
+    public static async Task<DynamicSchemaResponse> CreateSchemaAsync([Service] ISchemaBuilderService schemaBuilderService,
                                              CreateSchemaRequest request,
                                              CancellationToken cancellationToken)
     {
+
         return await schemaBuilderService.CreateSchemaAsync(request, cancellationToken);
-
     }
 
     [Error<SchemaError>]
-    public static async Task<bool> DeleteSchemaAsync([Service] ISchemaBuilderService schemaBuilderService, Guid schemaId, CancellationToken cancellationToken)
+    public static async Task<bool> DeleteSchemaById([Service] ISchemaBuilderService schemaBuilderService,
+                                                    DeleteSchemaById request,
+                                                    CancellationToken cancellationToken)
     {
-        return await schemaBuilderService.DeleteByIdAsync(schemaId, cancellationToken);
+        return await schemaBuilderService.DeleteByIdAsync(request.Id, cancellationToken);
     }
 
     [Error<SchemaError>]
-    public static async Task<DynamicSchema> UpdateSchemaAsync([Service] ISchemaBuilderService schemaBuilderService, UpdateSchemaRequest request, CancellationToken cancellationToken)
+    public static async Task<Guid> CreateEntityAsync([Service] IEntityService entityService,
+                                                     CreateDynamicEntityRequest request,
+                                                     CancellationToken cancellationToken)
     {
-        return await schemaBuilderService.UpdateSchemaAsync(request, cancellationToken);
+       return await entityService.CreateEntityAsync(request, cancellationToken);
     }
+
 }

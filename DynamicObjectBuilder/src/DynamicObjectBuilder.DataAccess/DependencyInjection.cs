@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using DynamicObjectBuilder.DataAccess.Repositories;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,9 +13,10 @@ namespace DynamicObjectBuilder.DataAccess
             services.AddDbContext<SchemaBuilderDbContext>(opt =>
             {
                 opt.UseSqlServer(connectionString: configuration.GetConnectionString("MSSQL"));
-                
+
             });
 
+            services.AddScoped<ISchemaRepository, SchemaRepository>();
             return services;
         }
     }
